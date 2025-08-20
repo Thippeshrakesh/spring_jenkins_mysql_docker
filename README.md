@@ -59,6 +59,7 @@ spring.datasource.url=jdbc:mysql://mysql-container:3306/myapplication?createData
 spring.datasource.username=root
 spring.datasource.password=1234
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
 
 ---
 ## admin login
