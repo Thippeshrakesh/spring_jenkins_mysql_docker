@@ -11,6 +11,14 @@ pipeline {
     }
 
     stages {
+        stage('Start Database') {
+            steps {
+                echo "⚡ Triggering MySQL Database Pipeline..."
+                build job: 'mysql-database-job', 
+                      parameters: [string(name: 'ACTION', value: 'start')]
+            }
+        }
+
         stage('Build JAR') {
             steps {
                 sh 'mvn clean package -DskipTests'
