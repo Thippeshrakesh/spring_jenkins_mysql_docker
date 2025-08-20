@@ -1,74 +1,43 @@
 pipeline {
     agent any
-    tools {
-        maven 'maven'
+    tools { 
+        maven 'maven' 
     }
 
     environment {
-        IMAGE_NAME = 'spring-app'
-        CONTAINER_NAME = 'spring-app-container'
-        APP_PORT = '8083'
+        COMPOSE_FILE = 'docker-compose.yml'
     }
 
     stages {
-        stage('Start Database') {
-            steps {
-                echo "⚡ Triggering MySQL Database Pipeline..."
-                build job: 'mysql-database-job', 
-                      parameters: [string(name: 'ACTION', value: 'start')]
-            }
-        }
-
         stage('Build JAR') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Start Services with Docker Compose') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
+                sh "docker-compose -f ${COMPOSE_FILE} up -d --build"
             }
         }
 
-        stage('Run Docker Container If Not Running') {
+        stage('Show Running Containers') {
             steps {
-                script {
-                    def isRunning = sh(script: "docker ps -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
-
-                    if (isRunning) {
-                        echo "🚫 Container '${CONTAINER_NAME}' is already running. Skipping run."
-                    } else {
-                        def exists = sh(script: "docker ps -a -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
-                        if (exists) {
-                            echo "🔁 Container exists but not running. Removing it..."
-                            sh "docker rm ${CONTAINER_NAME}"
-                        }
-
-                        echo "🚀 Starting new Docker container..."
-                        sh "docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:8080 ${IMAGE_NAME}"
-                    }
-                }
-            }
-        }
-
-        stage('Show Container Status') {
-            steps {
-                echo "📦 Current Docker containers:"
-                sh "docker ps -a --filter name=${CONTAINER_NAME}"
+                sh "docker ps --filter name=spring-app-container"
+                sh "docker ps --filter name=mysql-container"
             }
         }
     }
 
     post {
         success {
-            echo "✅ Spring Boot container is handled successfully."
+            echo "✅ Spring Boot app and MySQL started successfully with Docker Compose."
         }
         failure {
-            echo "❌ Something went wrong with the deployment."
+            echo "❌ Deployment failed. Check logs above."
         }
         always {
-            echo "ℹ️ Pipeline finished. Check logs above for final status."
+            echo "ℹ️ Pipeline finished."
         }
     }
 }
